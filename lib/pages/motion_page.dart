@@ -1,10 +1,13 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 /// A continuous animation with a frame-rate meter, to see how smoothly the
-/// GPU keeps up.
+/// GPU keeps up. Under AERA it also shows the embedder's own per-frame
+/// timings and the GPU clock, when the phone lets the app read them.
 class MotionPage extends StatefulWidget {
   const MotionPage({super.key});
 
@@ -17,6 +20,8 @@ class _MotionPageState extends State<MotionPage>
   late final Ticker _ticker;
   Duration _elapsed = Duration.zero;
   final _frames = <Duration>[];
+  Timer? _statsTimer;
+  String _stats = '';
 
   @override
   void initState() {
@@ -28,12 +33,41 @@ class _MotionPageState extends State<MotionPage>
           elapsed - _frames.first > const Duration(seconds: 1)) {
         _frames.removeAt(0);
       }
-    })
-      ..start();
+    })..start();
+    _statsTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _readStats(),
+    );
+  }
+
+  /// The embedder rewrites this file every 120 frames.
+  static const _statsFile = '/tmp/aera-flutter-stats';
+  static const _gpuClock = '/sys/class/kgsl/kgsl-3d0/gpuclk';
+  static const _gpuBusy = '/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage';
+
+  static String? _read(String path) {
+    try {
+      return File(path).readAsStringSync().trim();
+    } on FileSystemException {
+      return null;
+    }
+  }
+
+  void _readStats() {
+    final busy = _read(_gpuBusy);
+    final lines = <String>[
+      ?_read(_statsFile),
+      if (int.tryParse(_read(_gpuClock) ?? '') case final hz?)
+        'GPU ${hz ~/ 1000000} MHz'
+            '${busy == null ? '' : ', $busy busy'}',
+    ];
+    final text = lines.join('\n');
+    if (text != _stats && mounted) setState(() => _stats = text);
   }
 
   @override
   void dispose() {
+    _statsTimer?.cancel();
     _ticker.dispose();
     super.dispose();
   }
@@ -44,12 +78,29 @@ class _MotionPageState extends State<MotionPage>
       fit: StackFit.expand,
       children: [
         CustomPaint(
-            painter: _Orbits(_elapsed.inMicroseconds / 1e6,
-                Theme.of(context).colorScheme)),
+          painter: _Orbits(
+            _elapsed.inMicroseconds / 1e6,
+            Theme.of(context).colorScheme,
+          ),
+        ),
         Positioned(
           left: 12,
           top: 12,
-          child: Chip(label: Text('${_frames.length} fps')),
+          right: 12,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Chip(label: Text('${_frames.length} fps')),
+              if (_stats.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, left: 4),
+                  child: Text(
+                    _stats,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+            ],
+          ),
         ),
       ],
     );
@@ -70,8 +121,11 @@ class _Orbits extends CustomPainter {
       final radius = 30.0 + ring * 18;
       final count = 6 + ring * 3;
       final speed = (ring.isEven ? 1 : -1) * (0.6 + ring * 0.1);
-      paint.color = Color.lerp(colors.primary, colors.tertiary, ring / 7)!
-          .withValues(alpha: 0.85);
+      paint.color = Color.lerp(
+        colors.primary,
+        colors.tertiary,
+        ring / 7,
+      )!.withValues(alpha: 0.85);
       for (var i = 0; i < count; i++) {
         final angle = time * speed + i * 2 * pi / count;
         final wobble = 1 + 0.08 * sin(time * 3 + i);
@@ -81,9 +135,12 @@ class _Orbits extends CustomPainter {
         canvas.translate(position.dx, position.dy);
         canvas.rotate(angle * 2);
         canvas.drawRRect(
-            RRect.fromRectAndRadius(
-                const Rect.fromLTWH(-5, -5, 10, 10), const Radius.circular(3)),
-            paint);
+          RRect.fromRectAndRadius(
+            const Rect.fromLTWH(-5, -5, 10, 10),
+            const Radius.circular(3),
+          ),
+          paint,
+        );
         canvas.restore();
       }
     }
