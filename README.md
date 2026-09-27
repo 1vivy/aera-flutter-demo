@@ -1,50 +1,23 @@
-# AERA Flutter template
+# AERA Flutter demo
 
-A Flutter app with a Rust core (flutter_rust_bridge) that runs **inside AERA
-Recovery**, drawn with the phone's GPU.
+Flutter and Rust running inside AERA Recovery, drawn by the phone's GPU.
+Built from [aera-flutter-template](https://github.com/1vivy/aera-flutter-template).
 
-AERA gives the GPU only to its browser slot, so the app is packaged as an
-unofficial plugin with the `browser` ID. Installing it replaces AERA Browser
-on that phone until the official browser is reinstalled. AERA shows its own
-address bar and dock around the app.
+| Page | Shows |
+| --- | --- |
+| Device | Kernel, CPUs, memory and uptime read by Rust ([aera-sdk](https://github.com/1vivy/aera-flutter-sdk)) |
+| Notes | Typing with AERA's keyboard, files in private storage, export to `/sdcard/AERA/Downloads` |
+| Sound | A keyboard played through the speaker by Rust over AERA's audio bridge |
+| Fractal | The Mandelbrot set computed in Rust on every core; tap to zoom |
+| Motion | A continuous animation with a frame-rate meter, to judge GPU smoothness |
 
-## What you need
+## Install
 
-- Flutter 3.47.5 (the kits' engine is tied to this exact release)
-- Rust with the `aarch64-unknown-linux-gnu` target and `aarch64-linux-gnu-gcc`
-  (`sudo apt install gcc-aarch64-linux-gnu`, `rustup target add aarch64-unknown-linux-gnu`)
-- `flutter_rust_bridge_codegen` 2.13.0 when you change the Rust API
-- For the PC simulator: Mesa's EGL (`libegl1`, `libgles2`)
+Download `Flutter-Demo-<version>.aerap` from the releases, copy it to the
+phone and install it from AERA's plugin screen. It installs as an unofficial
+app in the browser slot, replacing AERA Browser until you reinstall it.
 
-## Use it
+## Build
 
-```sh
-tool/aera.sh sim                  # run on this PC in AERA's bridge; frames land in build/aera/frames
-tool/aera.sh sim --until 5000 --tap 180,190@1000 --save-at 3000
-tool/aera.sh package              # build/aera/<name>-<version>.aerap
-```
-
-Copy the `.aerap` to the phone and install it from AERA's plugin screen. Name,
-version and description come from `aera.json`. For fast UI work,
-`flutter run -d linux` also works; AERA-only features then report that they
-are unavailable.
-
-## Where things go
-
-- `lib/` Dart UI. `lib/aera/runtime.dart` loads the Rust library.
-- `rust/src/api/` Rust functions Dart can call. After changing them run
-  `flutter_rust_bridge_codegen generate`.
-- `aera-sdk` (from [aera-flutter-sdk](https://github.com/1vivy/aera-flutter-sdk))
-  is what reaches AERA: storage, device info, speaker audio, recovery language.
-
-## Inside AERA
-
-The app runs in AERA's browser jail: its own payload as `/`, no root, network
-but no listening sockets, `/profile` for private files, `/downloads` for
-`/sdcard/AERA/Downloads`, 512 MB of `/tmp`, about 1.5 GB of memory. The screen
-is 1080x2100 at 3x (360x700 logical pixels). The Back button pops the
-navigator.
-
-Builds are debug (JIT) for now; the kits come from
-[aera-flutter-embedder](https://github.com/1vivy/aera-flutter-embedder)
-releases.
+Same as the template: `tool/aera.sh sim` runs it on a PC, `tool/aera.sh package`
+builds the `.aerap`.

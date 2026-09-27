@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 
 import 'aera/runtime.dart';
-import 'src/rust/api/aera.dart';
+import 'pages/device_page.dart';
+import 'pages/fractal_page.dart';
+import 'pages/motion_page.dart';
+import 'pages/notes_page.dart';
+import 'pages/sound_page.dart';
 
 Future<void> main() async {
   await initAera();
-  runApp(const App());
+  runApp(const DemoApp());
 }
 
-class App extends StatelessWidget {
-  const App({super.key});
+class DemoApp extends StatelessWidget {
+  const DemoApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AERA App',
+      title: 'Flutter Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -23,55 +26,42 @@ class App extends StatelessWidget {
           brightness: Brightness.dark,
         ),
       ),
-      home: const HomePage(),
+      home: const Home(),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class Home extends StatefulWidget {
+  const Home({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<Home> createState() => _HomeState();
 }
 
-class _HomePageState extends State<HomePage> {
-  String _status = '';
-
-  Future<void> _beep() async {
-    try {
-      await playTone(frequencyHz: 880, milliseconds: 200, volume: 0.3);
-      setState(() => _status = 'Played a tone');
-    } catch (error) {
-      setState(() => _status = 'No speaker here: ${error is AnyhowException ? error.message : error}');
-    }
-  }
+class _HomeState extends State<Home> {
+  static const _pages = [
+    (Icons.memory, 'Device', DevicePage()),
+    (Icons.edit_note, 'Notes', NotesPage()),
+    (Icons.piano, 'Sound', SoundPage()),
+    (Icons.blur_on, 'Fractal', FractalPage()),
+    (Icons.animation, 'Motion', MotionPage()),
+  ];
+  int _index = 0;
 
   @override
   Widget build(BuildContext context) {
-    final where = inRecovery() ? 'AERA Recovery' : 'a PC';
+    final page = _pages[_index];
     return Scaffold(
-      appBar: AppBar(title: const Text('AERA App')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Running on $where',
-                style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 8),
-            Text('Language: ${recoveryLocale()}'),
-            Text('Your files: ${storageDirs().appData}'),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: _beep,
-              icon: const Icon(Icons.volume_up),
-              label: const Text('Beep from Rust'),
-            ),
-            const SizedBox(height: 8),
-            Text(_status),
-          ],
-        ),
+      appBar: AppBar(title: Text(page.$2)),
+      body: page.$3,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (index) => setState(() => _index = index),
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+        destinations: [
+          for (final (icon, label, _) in _pages)
+            NavigationDestination(icon: Icon(icon), label: label),
+        ],
       ),
     );
   }

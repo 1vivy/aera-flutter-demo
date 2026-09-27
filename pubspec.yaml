@@ -1,5 +1,5 @@
-name: aera_app
-description: "A Flutter app for AERA Recovery, with a Rust core."
+name: aera_demo
+description: "AERA Flutter demo: device info, notes, sound and a Rust fractal inside AERA Recovery."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
