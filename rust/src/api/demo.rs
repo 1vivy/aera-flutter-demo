@@ -1,6 +1,6 @@
 //! Rust that only the demo uses.
 
-/// Renders the Mandelbrot set as RGBA pixels, splitting rows across all CPUs.
+/// Renders the Mandelbrot set as RGBA pixels, sharing bands of rows across all CPUs.
 /// `scale` is the width of the view in the complex plane.
 pub fn mandelbrot(
     width: u32,
@@ -15,14 +15,18 @@ pub fn mandelbrot(
     let step = scale / width as f64;
     let top = center_y - step * height as f64 / 2.0;
     let left = center_x - scale / 2.0;
+    // Rows inside the set cost max_iterations each, so hand out small bands
+    // on demand instead of one fixed block per thread.
+    const BAND_ROWS: usize = 8;
+    let bands = std::sync::Mutex::new(pixels.chunks_mut(BAND_ROWS * width * 4).enumerate());
     let threads = std::thread::available_parallelism().map_or(1, |n| n.get());
-    let rows_per_chunk = height.div_ceil(threads);
     std::thread::scope(|scope| {
-        for (chunk_index, chunk) in pixels.chunks_mut(rows_per_chunk * width * 4).enumerate() {
-            scope.spawn(move || {
+        for _ in 0..threads {
+            scope.spawn(|| loop {
+                let Some((band, chunk)) = bands.lock().unwrap().next() else { break };
                 for (i, pixel) in chunk.chunks_exact_mut(4).enumerate() {
                     let x = i % width;
-                    let y = chunk_index * rows_per_chunk + i / width;
+                    let y = band * BAND_ROWS + i / width;
                     let c = (left + x as f64 * step, top + y as f64 * step);
                     pixel.copy_from_slice(&colour(escape(c, max_iterations), max_iterations));
                 }
@@ -34,6 +38,12 @@ pub fn mandelbrot(
 
 /// Smooth escape count, or None inside the set.
 fn escape((cr, ci): (f64, f64), max_iterations: u32) -> Option<f64> {
+    // Points in the main cardioid or the period-2 bulb never escape; skip
+    // their full iteration count.
+    let q = (cr - 0.25) * (cr - 0.25) + ci * ci;
+    if q * (q + (cr - 0.25)) <= 0.25 * ci * ci || (cr + 1.0) * (cr + 1.0) + ci * ci <= 0.0625 {
+        return None;
+    }
     let (mut zr, mut zi) = (0.0f64, 0.0f64);
     for n in 0..max_iterations {
         let (zr2, zi2) = (zr * zr, zi * zi);
@@ -52,6 +62,7 @@ fn colour(escape: Option<f64>, max_iterations: u32) -> [u8; 4] {
     let wave = |phase: f64| ((0.5 + 0.5 * (6.283 * (t * 3.0 + phase)).cos()) * 255.0) as u8;
     [wave(0.0), wave(0.15), wave(0.3), 255]
 }
+
 
 /// Plays notes one after another as a single stream, so they never overlap.
 pub fn play_notes(frequencies_hz: Vec<f32>, note_milliseconds: u32, volume: f32) -> anyhow::Result<()> {

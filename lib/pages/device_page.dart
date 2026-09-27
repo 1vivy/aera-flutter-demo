@@ -2,6 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../src/rust/api/aera.dart';
 
+// Set by tool/aera.sh, so the phone shows exactly which build is running.
+const _version = String.fromEnvironment(
+  'AERA_APP_VERSION',
+  defaultValue: 'dev',
+);
+const _renderer = String.fromEnvironment('AERA_RENDERER', defaultValue: 'gl');
+const _appVersion = '$_version ($_renderer)';
+const _appBuild = String.fromEnvironment(
+  'AERA_APP_BUILD',
+  defaultValue: 'not packaged',
+);
+
 /// What the app can learn about the phone from inside AERA's jail.
 class DevicePage extends StatefulWidget {
   const DevicePage({super.key});
@@ -38,14 +50,18 @@ class _DevicePageState extends State<DevicePage> {
             children: [
               _Section('Where', [
                 ('Running on', inRecovery() ? 'AERA Recovery' : 'a PC'),
+                ('App', _appVersion),
+                ('Build', _appBuild),
                 ('Language', recoveryLocale()),
               ]),
               if (info != null)
                 _Section('Phone', [
                   ('Kernel', info.kernel),
                   ('CPU', '${info.cpuCount} cores, ${info.machine}'),
-                  ('Memory',
-                      '${_bytes(info.freeRamBytes)} free of ${_bytes(info.totalRamBytes)}'),
+                  (
+                    'Memory',
+                    '${_bytes(info.freeRamBytes)} free of ${_bytes(info.totalRamBytes)}',
+                  ),
                   ('Up for', _duration(info.uptimeSeconds)),
                 ]),
               _Section('Storage', [
@@ -87,8 +103,10 @@ class _Section extends StatelessWidget {
                   children: [
                     SizedBox(
                       width: 90,
-                      child: Text(label,
-                          style: TextStyle(color: theme.colorScheme.outline)),
+                      child: Text(
+                        label,
+                        style: TextStyle(color: theme.colorScheme.outline),
+                      ),
                     ),
                     Expanded(child: Text(value)),
                   ],

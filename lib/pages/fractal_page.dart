@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -21,10 +22,23 @@ class _FractalPageState extends State<FractalPage> {
   String _timing = '';
   int _generation = 0;
 
+  /// Shows a quarter-resolution preview first, then the full image.
   Future<void> _render(Size size, double ratio) async {
     final generation = ++_generation;
-    final width = (size.width * ratio).round();
-    final height = (size.height * ratio).round();
+    if (_timing.isNotEmpty) setState(() => _timing = '');
+    await _renderAt(size, ratio / 4, generation, preview: true);
+    await _renderAt(size, ratio, generation, preview: false);
+  }
+
+  Future<void> _renderAt(
+    Size size,
+    double ratio,
+    int generation, {
+    required bool preview,
+  }) async {
+    if (!mounted || generation != _generation) return;
+    final width = max(1, (size.width * ratio).round());
+    final height = max(1, (size.height * ratio).round());
     final watch = Stopwatch()..start();
     final pixels = await mandelbrot(
       width: width,
@@ -37,12 +51,21 @@ class _FractalPageState extends State<FractalPage> {
     final rust = watch.elapsedMilliseconds;
     final completer = Completer<ui.Image>();
     ui.decodeImageFromPixels(
-        pixels, width, height, ui.PixelFormat.rgba8888, completer.complete);
+      pixels,
+      width,
+      height,
+      ui.PixelFormat.rgba8888,
+      completer.complete,
+    );
     final image = await completer.future;
     if (!mounted || generation != _generation) return;
     setState(() {
       _image = image;
-      _timing = '${width}x$height in $rust ms';
+      if (!preview) {
+        _timing =
+            '${width}x$height: Rust $rust ms, '
+            'on screen after ${watch.elapsedMilliseconds} ms';
+      }
     });
   }
 
@@ -68,37 +91,39 @@ class _FractalPageState extends State<FractalPage> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final size = constraints.biggest;
-      if (size != _size) {
-        _size = size;
-        final ratio = MediaQuery.devicePixelRatioOf(context);
-        scheduleMicrotask(() => _render(size, ratio));
-      }
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          GestureDetector(
-            onTapUp: (details) => _zoom(details.localPosition),
-            child: _image == null
-                ? const Center(child: CircularProgressIndicator())
-                : RawImage(image: _image, fit: BoxFit.fill),
-          ),
-          Positioned(
-            left: 12,
-            bottom: 12,
-            child: Chip(label: Text(_timing.isEmpty ? 'Rendering' : _timing)),
-          ),
-          Positioned(
-            right: 12,
-            bottom: 12,
-            child: FloatingActionButton.small(
-              onPressed: _reset,
-              child: const Icon(Icons.zoom_out_map),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = constraints.biggest;
+        if (size != _size) {
+          _size = size;
+          final ratio = MediaQuery.devicePixelRatioOf(context);
+          scheduleMicrotask(() => _render(size, ratio));
+        }
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            GestureDetector(
+              onTapUp: (details) => _zoom(details.localPosition),
+              child: _image == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : RawImage(image: _image, fit: BoxFit.fill),
             ),
-          ),
-        ],
-      );
-    });
+            Positioned(
+              left: 12,
+              bottom: 12,
+              child: Chip(label: Text(_timing.isEmpty ? 'Rendering' : _timing)),
+            ),
+            Positioned(
+              right: 12,
+              bottom: 12,
+              child: FloatingActionButton.small(
+                onPressed: _reset,
+                child: const Icon(Icons.zoom_out_map),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
