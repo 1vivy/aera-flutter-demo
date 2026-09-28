@@ -13,7 +13,7 @@ packages:
     description:
       path: aera_flutter
       ref: generic-host
-      resolved-ref: f4aae8c924f6a46a964d304c0370ad92feeebfcb
+      resolved-ref: "86c068731f2b6eb47aafff49523b945c498b639d"
       url: "https://github.com/1vivy/aera-flutter-sdk"
     source: git
     version: "0.1.0"
