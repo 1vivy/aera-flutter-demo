@@ -1,13 +1,13 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:surfaces/surfaces.dart';
 
 /// A continuous animation with a frame-rate meter, to see how smoothly the
-/// GPU keeps up. Under AERA it also shows the embedder's own per-frame
-/// timings and the GPU clock, when the phone lets the app read them.
+/// host keeps up. Under AERA it also shows the embedder's own per-frame
+/// timings and the GPU clock, read through the ops.
 class MotionPage extends StatefulWidget {
   const MotionPage({super.key});
 
@@ -42,28 +42,23 @@ class _MotionPageState extends State<MotionPage>
 
   /// The embedder rewrites this file every 120 frames.
   static const _statsFile = '/tmp/aera-flutter-stats';
-  static const _gpuClock = '/sys/class/kgsl/kgsl-3d0/gpuclk';
-  static const _gpuBusy = '/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage';
 
-  static String? _read(String path) {
+  Future<void> _readStats() async {
+    final surface = Surface.instance;
+    if (surface.info.kind != HostKind.aera || _reading) return;
+    _reading = true;
     try {
-      return File(path).readAsStringSync().trim();
-    } on FileSystemException {
-      return null;
+      final result = await surface.shell.exec(
+        'cat $_statsFile 2>/dev/null; cat /sys/class/kgsl/kgsl-3d0/gpuclk 2>/dev/null',
+      );
+      final text = result.stdout.trim();
+      if (text != _stats && mounted) setState(() => _stats = text);
+    } finally {
+      _reading = false;
     }
   }
 
-  void _readStats() {
-    final busy = _read(_gpuBusy);
-    final lines = <String>[
-      ?_read(_statsFile),
-      if (int.tryParse(_read(_gpuClock) ?? '') case final hz?)
-        'GPU ${hz ~/ 1000000} MHz'
-            '${busy == null ? '' : ', $busy busy'}',
-    ];
-    final text = lines.join('\n');
-    if (text != _stats && mounted) setState(() => _stats = text);
-  }
+  bool _reading = false;
 
   @override
   void dispose() {
@@ -74,6 +69,13 @@ class _MotionPageState extends State<MotionPage>
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Motion')),
+      body: _body(context),
+    );
+  }
+
+  Widget _body(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
       children: [

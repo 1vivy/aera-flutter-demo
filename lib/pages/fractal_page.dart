@@ -2,13 +2,14 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:surfaces/surfaces.dart';
 
-import '../src/rust/api/demo.dart';
-
-/// The Mandelbrot set computed in Rust on every CPU core, shown by Flutter.
-/// Drag to move, pinch to zoom, tap to zoom in where you tap. The current
-/// image follows your fingers at once; Rust redraws when they lift.
+/// The Mandelbrot set computed by the Rust core (on every CPU natively,
+/// in core.wasm on the web), shown by Flutter. Drag to move, pinch to zoom,
+/// tap to zoom in where you tap. The current image follows your fingers at
+/// once; Rust redraws when they lift.
 class FractalPage extends StatefulWidget {
   const FractalPage({super.key});
 
@@ -30,6 +31,7 @@ class _FractalPageState extends State<FractalPage> {
   ui.Image? _image;
   Size? _size;
   String _timing = '';
+  String? _unavailable;
   int _generation = 0;
 
   _View? _gestureStart;
@@ -39,10 +41,14 @@ class _FractalPageState extends State<FractalPage> {
   Future<void> _render() async {
     final size = _size;
     if (size == null) return;
-    final ratio = MediaQuery.devicePixelRatioOf(context);
+    // core.wasm is single-threaded and runs on the page's only thread, so
+    // the web draws at one pixel per logical pixel.
+    final ratio = kIsWeb ? 1.0 : MediaQuery.devicePixelRatioOf(context);
     final generation = ++_generation;
     if (_timing.isNotEmpty) setState(() => _timing = '');
     await _renderAt(size, ratio / 4, generation, preview: true);
+    // Let the preview reach the screen before the full render blocks.
+    await Future<void>.delayed(const Duration(milliseconds: 20));
     await _renderAt(size, ratio, generation, preview: false);
   }
 
@@ -57,14 +63,20 @@ class _FractalPageState extends State<FractalPage> {
     final width = max(1, (size.width * ratio).round());
     final height = max(1, (size.height * ratio).round());
     final watch = Stopwatch()..start();
-    final pixels = await mandelbrot(
-      width: width,
-      height: height,
-      centerX: view.x,
-      centerY: view.y,
-      scale: view.scale,
-      maxIterations: 400,
-    );
+    final Uint8List pixels;
+    try {
+      pixels = Surface.instance.core.bytes('mandelbrot', {
+        'width': width,
+        'height': height,
+        'x': view.x,
+        'y': view.y,
+        'scale': view.scale,
+        'iterations': 400,
+      });
+    } on OpsException catch (error) {
+      if (mounted) setState(() => _unavailable = error.message);
+      return;
+    }
     final rust = watch.elapsedMilliseconds;
     final completer = Completer<ui.Image>();
     ui.decodeImageFromPixels(
@@ -164,6 +176,22 @@ class _FractalPageState extends State<FractalPage> {
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Fractal')),
+      body: _body(context),
+    );
+  }
+
+  Widget _body(BuildContext context) {
+    final unavailable = _unavailable;
+    if (unavailable != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text('No Rust core here: $unavailable'),
+        ),
+      );
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = constraints.biggest;
@@ -191,12 +219,12 @@ class _FractalPageState extends State<FractalPage> {
             ),
             Positioned(
               left: 12,
-              bottom: 12,
+              bottom: 12 + MediaQuery.paddingOf(context).bottom,
               child: Chip(label: Text(_timing.isEmpty ? 'Rendering' : _timing)),
             ),
             Positioned(
               right: 12,
-              bottom: 12,
+              bottom: 12 + MediaQuery.paddingOf(context).bottom,
               child: FloatingActionButton.small(
                 onPressed: _reset,
                 child: const Icon(Icons.zoom_out_map),
