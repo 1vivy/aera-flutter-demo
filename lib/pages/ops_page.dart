@@ -153,6 +153,35 @@ class _OpsPageState extends State<OpsPage> {
           ),
         ),
         SectionCard(
+          title: 'Swappable backends',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'One op, several ways to do it, picked in Rust by what this host '
+                'can use: the pattern for fastboot vs dd. See rust/core/src/disks.rs.',
+              ),
+              const SizedBox(height: Gap.s),
+              Wrap(
+                spacing: Gap.s,
+                runSpacing: Gap.s,
+                children: [
+                  FilledButton.tonal(
+                    onPressed: ready
+                        ? () => _call('demo.disks.backends')
+                        : null,
+                    child: const Text('Backends here'),
+                  ),
+                  FilledButton.tonal(
+                    onPressed: ready ? () => _call('demo.disks') : null,
+                    child: const Text('List disks'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SectionCard(
           title: 'Jobs',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

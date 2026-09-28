@@ -5,7 +5,10 @@
 //!   `core.wasm`.
 //! - [`DemoOps`] is the **ops** handler: run as root by the worker on WebUI
 //!   and in-process on AERA and desktop.
+//! - [`disks`] shows an app-level backend switch (dd vs fastboot style)
+//!   behind one op.
 
+pub mod disks;
 mod fractal;
 
 use serde::Deserialize;
@@ -104,6 +107,8 @@ impl Handler for DemoOps {
                 }
                 Ok(json!({ "below": below, "primes": count }))
             }
+            "demo.disks.backends" => Ok(disks::backends()),
+            "demo.disks" => disks::list(request.input.get("backend").and_then(Value::as_str)),
             _ => builtin::call(request, job),
         }
     }
@@ -155,6 +160,10 @@ mod tests {
     fn ops() {
         let primes = DemoOps.call(&Request::new("demo.primes", json!({"below": 100})), &JobCtx::none()).unwrap();
         assert_eq!(primes["primes"], 25);
+        let backends = DemoOps.call(&Request::new("demo.disks.backends", Value::Null), &JobCtx::none()).unwrap();
+        assert_eq!(backends.as_array().unwrap().len(), 2);
+        let missing = DemoOps.call(&Request::new("demo.disks", json!({"backend": "nope"})), &JobCtx::none());
+        assert!(missing.is_err());
         let info = DemoOps.call(&Request::new("sys.info", Value::Null), &JobCtx::none()).unwrap();
         assert!(info["os"].is_string());
     }

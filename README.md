@@ -18,7 +18,7 @@ capabilities the host has and what the app does instead when it doesn't.
 | Theme | The host's Material You colours and the scheme built from them |
 | Apps | Installed apps, with labels where the host gives them |
 | Shell | Root commands, and how long the host froze the page to run one |
-| Ops and jobs | Rust ops as root (the module's worker) or in-process: calls, and jobs with progress and cancel |
+| Ops and jobs | Rust ops as root (the module's worker) or in-process: calls, jobs with progress and cancel, and one op with swappable backends picked by what the host can use (`rust/core/src/disks.rs`) |
 | Fractal | The Mandelbrot set drawn by the Rust core: every CPU natively, `core.wasm` on the web |
 | Motion | A frame-rate meter |
 | Sound | AERA's speaker played by Rust (AERA only) |
