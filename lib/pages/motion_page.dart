@@ -28,7 +28,8 @@ class _MotionPageState extends State<MotionPage>
           elapsed - _frames.first > const Duration(seconds: 1)) {
         _frames.removeAt(0);
       }
-    })..start();
+    })
+      ..start();
   }
 
   @override
@@ -43,11 +44,8 @@ class _MotionPageState extends State<MotionPage>
       fit: StackFit.expand,
       children: [
         CustomPaint(
-          painter: _Orbits(
-            _elapsed.inMicroseconds / 1e6,
-            Theme.of(context).colorScheme,
-          ),
-        ),
+            painter: _Orbits(_elapsed.inMicroseconds / 1e6,
+                Theme.of(context).colorScheme)),
         Positioned(
           left: 12,
           top: 12,
@@ -72,11 +70,8 @@ class _Orbits extends CustomPainter {
       final radius = 30.0 + ring * 18;
       final count = 6 + ring * 3;
       final speed = (ring.isEven ? 1 : -1) * (0.6 + ring * 0.1);
-      paint.color = Color.lerp(
-        colors.primary,
-        colors.tertiary,
-        ring / 7,
-      )!.withValues(alpha: 0.85);
+      paint.color = Color.lerp(colors.primary, colors.tertiary, ring / 7)!
+          .withValues(alpha: 0.85);
       for (var i = 0; i < count; i++) {
         final angle = time * speed + i * 2 * pi / count;
         final wobble = 1 + 0.08 * sin(time * 3 + i);
@@ -86,12 +81,9 @@ class _Orbits extends CustomPainter {
         canvas.translate(position.dx, position.dy);
         canvas.rotate(angle * 2);
         canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            const Rect.fromLTWH(-5, -5, 10, 10),
-            const Radius.circular(3),
-          ),
-          paint,
-        );
+            RRect.fromRectAndRadius(
+                const Rect.fromLTWH(-5, -5, 10, 10), const Radius.circular(3)),
+            paint);
         canvas.restore();
       }
     }
