@@ -1,5 +1,5 @@
 {
   "name": "Flutter Demo",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Flutter and Rust running inside AERA Recovery on the GPU: device info, notes, a speaker keyboard and a fractal drawn in Rust."
 }

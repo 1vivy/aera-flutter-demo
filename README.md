@@ -7,9 +7,10 @@ Built from [aera-flutter-template](https://github.com/1vivy/aera-flutter-templat
 | --- | --- |
 | Device | Kernel, CPUs, memory and uptime read by Rust ([aera-sdk](https://github.com/1vivy/aera-flutter-sdk)) |
 | Notes | Typing with AERA's keyboard, files in private storage, export to `/sdcard/AERA/Downloads` |
-| Sound | A keyboard played through the speaker by Rust over AERA's audio bridge |
+| Sound | A keyboard played through the speaker by Rust, mixed over one lasting connection to AERA's audio bridge |
 | Fractal | The Mandelbrot set computed in Rust on every core; tap to zoom |
 | Motion | A continuous animation with a frame-rate meter, to judge GPU smoothness |
+| System | AERA's back gesture (pops pages, then the tab, then leaves), keyboard with insets, and top bar events, through the `aera_flutter` package |
 
 ## Install
 

@@ -72,9 +72,8 @@ pub fn play_notes(frequencies_hz: Vec<f32>, note_milliseconds: u32, volume: f32)
         fade(&mut note);
         samples.extend(note);
     }
-    let mut output = aera_sdk::audio::AudioOutput::connect()?;
-    output.write(&samples)?;
-    Ok(())
+    // One shared, lingering connection: quick taps reuse it and overlap.
+    aera_sdk::speaker::Speaker::global().play_checked(samples).map_err(anyhow::Error::msg)
 }
 
 /// Ramps the ends of a stereo note to avoid clicks.
