@@ -30,8 +30,10 @@ class _SoundPageState extends State<SoundPage> {
       );
       setState(() => _status = 'Playing');
     } catch (error) {
-      setState(() => _status =
-          'No speaker here: ${error is AnyhowException ? error.message : error}');
+      setState(
+        () => _status =
+            'No speaker here: ${error is AnyhowException ? error.message : error}',
+      );
     }
   }
 
@@ -53,7 +55,8 @@ class _SoundPageState extends State<SoundPage> {
                       child: Material(
                         color: colors.surfaceContainerHighest,
                         borderRadius: const BorderRadius.vertical(
-                            bottom: Radius.circular(8)),
+                          bottom: Radius.circular(8),
+                        ),
                         child: InkWell(
                           onTap: () => _play([_semitones[i]], 300),
                           child: Align(

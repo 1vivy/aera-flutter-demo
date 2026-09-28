@@ -44,8 +44,10 @@ class _DevicePageState extends State<DevicePage> {
                 _Section('Phone', [
                   ('Kernel', info.kernel),
                   ('CPU', '${info.cpuCount} cores, ${info.machine}'),
-                  ('Memory',
-                      '${_bytes(info.freeRamBytes)} free of ${_bytes(info.totalRamBytes)}'),
+                  (
+                    'Memory',
+                    '${_bytes(info.freeRamBytes)} free of ${_bytes(info.totalRamBytes)}',
+                  ),
                   ('Up for', _duration(info.uptimeSeconds)),
                 ]),
               _Section('Storage', [
@@ -87,8 +89,10 @@ class _Section extends StatelessWidget {
                   children: [
                     SizedBox(
                       width: 90,
-                      child: Text(label,
-                          style: TextStyle(color: theme.colorScheme.outline)),
+                      child: Text(
+                        label,
+                        style: TextStyle(color: theme.colorScheme.outline),
+                      ),
                     ),
                     Expanded(child: Text(value)),
                   ],

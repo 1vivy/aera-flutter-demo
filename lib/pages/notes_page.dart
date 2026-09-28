@@ -61,8 +61,10 @@ class _NotesPageState extends State<NotesPage> {
             decoration: InputDecoration(
               hintText: 'Write a note',
               border: const OutlineInputBorder(),
-              suffixIcon:
-                  IconButton(icon: const Icon(Icons.add), onPressed: _add),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: _add,
+              ),
             ),
             onSubmitted: (_) => _add(),
           ),

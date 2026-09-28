@@ -37,7 +37,12 @@ class _FractalPageState extends State<FractalPage> {
     final rust = watch.elapsedMilliseconds;
     final completer = Completer<ui.Image>();
     ui.decodeImageFromPixels(
-        pixels, width, height, ui.PixelFormat.rgba8888, completer.complete);
+      pixels,
+      width,
+      height,
+      ui.PixelFormat.rgba8888,
+      completer.complete,
+    );
     final image = await completer.future;
     if (!mounted || generation != _generation) return;
     setState(() {
@@ -68,37 +73,39 @@ class _FractalPageState extends State<FractalPage> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final size = constraints.biggest;
-      if (size != _size) {
-        _size = size;
-        final ratio = MediaQuery.devicePixelRatioOf(context);
-        scheduleMicrotask(() => _render(size, ratio));
-      }
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          GestureDetector(
-            onTapUp: (details) => _zoom(details.localPosition),
-            child: _image == null
-                ? const Center(child: CircularProgressIndicator())
-                : RawImage(image: _image, fit: BoxFit.fill),
-          ),
-          Positioned(
-            left: 12,
-            bottom: 12,
-            child: Chip(label: Text(_timing.isEmpty ? 'Rendering' : _timing)),
-          ),
-          Positioned(
-            right: 12,
-            bottom: 12,
-            child: FloatingActionButton.small(
-              onPressed: _reset,
-              child: const Icon(Icons.zoom_out_map),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = constraints.biggest;
+        if (size != _size) {
+          _size = size;
+          final ratio = MediaQuery.devicePixelRatioOf(context);
+          scheduleMicrotask(() => _render(size, ratio));
+        }
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            GestureDetector(
+              onTapUp: (details) => _zoom(details.localPosition),
+              child: _image == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : RawImage(image: _image, fit: BoxFit.fill),
             ),
-          ),
-        ],
-      );
-    });
+            Positioned(
+              left: 12,
+              bottom: 12,
+              child: Chip(label: Text(_timing.isEmpty ? 'Rendering' : _timing)),
+            ),
+            Positioned(
+              right: 12,
+              bottom: 12,
+              child: FloatingActionButton.small(
+                onPressed: _reset,
+                child: const Icon(Icons.zoom_out_map),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
